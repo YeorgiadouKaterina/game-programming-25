@@ -31,6 +31,7 @@ int main(void)
 
 	int delay_type = 0;
 
+	//Player Blue
 	float player_size = 40;
 	SDL_FRect player_rect;
 	player_rect.w = player_size;
@@ -38,8 +39,24 @@ int main(void)
 	player_rect.x = window_w / 2 - player_size / 2;
 	player_rect.y = window_h / 2 - player_size / 2;
 
+	//Player Red
+	SDL_FRect player_rect2;
+	player_rect2.w = player_size;
+	player_rect2.h = player_size;
+	player_rect2.x = window_w / 4 - player_size / 2; //Different starting point
+	player_rect2.y = window_h / 4 - player_size / 2;
 
+	//Player Blue movement WASD
 	bool btn_pressed_up = false;
+	bool btn_pressed_down = false;
+	bool btn_pressed_right = false;
+	bool btn_pressed_left = false;
+
+	//Player Red movement arrows
+	bool btn2_pressed_up = false;
+	bool btn2_pressed_down = false;
+	bool btn2_pressed_right = false;
+	bool btn2_pressed_left = false;
 
 	SDL_GetCurrentTime(&walltime_frame_beg);
 	while(!quit)
@@ -56,18 +73,29 @@ int main(void)
 				case SDL_EVENT_KEY_DOWN:
 					if(event.key.key >= SDLK_0 && event.key.key < SDLK_5)
 						delay_type = event.key.key - SDLK_0;
+					if (event.key.key == SDLK_W) btn_pressed_up = true; // Key down -> set flag to true
+					if (event.key.key == SDLK_S) btn_pressed_down = true;
+					if (event.key.key == SDLK_D) btn_pressed_right = true;
+					if (event.key.key == SDLK_A) btn_pressed_left = true;
+
+					if (event.key.key == SDLK_UP) btn2_pressed_up = true;
+					if (event.key.key == SDLK_DOWN) btn2_pressed_down = true;
+					if (event.key.key == SDLK_RIGHT) btn2_pressed_right = true;
+					if (event.key.key == SDLK_LEFT) btn2_pressed_left = true;
+					break;
+				case SDL_EVENT_KEY_UP:
+					if (event.key.key == SDLK_W) btn_pressed_up = false; // Key up -> set flag to false
+					if (event.key.key == SDLK_S) btn_pressed_down = false;
+					if (event.key.key == SDLK_D) btn_pressed_right = false;
+					if (event.key.key == SDLK_A) btn_pressed_left = false;
+
+					if (event.key.key == SDLK_UP) btn2_pressed_up = false;
+					if (event.key.key == SDLK_DOWN) btn2_pressed_down = false;
+					if (event.key.key == SDLK_RIGHT) btn2_pressed_right = false;
+					if (event.key.key == SDLK_LEFT) btn2_pressed_left = false;
 					break;
 			}
 		}
-
-		// clear screen
-		// NOTE: `0x` prefix means we are expressing the number in hexadecimal (base 16)
-		//       `0b` is another useful prefix, expresses the number in binary
-		SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-		SDL_RenderClear(renderer);
-		
-		SDL_SetRenderDrawColor(renderer, 0x3C, 0x63, 0xFF, 0XFF);
-		SDL_RenderFillRect(renderer, &player_rect);
 
 		SDL_GetCurrentTime(&walltime_work_end);
 		time_elapsed_work = walltime_work_end - walltime_frame_beg;
@@ -115,6 +143,59 @@ int main(void)
 				}
 			}
 		}
+
+		// Update Players position
+		if (btn_pressed_up) {
+			player_rect.y -= 5; // Move up 5 pixels every frame the key is held
+		}
+		if (btn_pressed_down) {
+			player_rect.y += 5; // Move down 5 pixels every frame the key is held
+		}
+		if (btn_pressed_right) {
+			player_rect.x += 5; // Move down 5 pixels every frame the key is held
+		}
+		if (btn_pressed_left) {
+			player_rect.x -= 5; // Move down 5 pixels every frame the key is held
+		}
+
+		if (btn2_pressed_up) {
+			player_rect2.y -= 5; // Move up 5 pixels every frame the key is held
+		}
+		if (btn2_pressed_down) {
+			player_rect2.y += 5; // Move down 5 pixels every frame the key is held
+		}
+		if (btn2_pressed_right) {
+			player_rect2.x += 5; // Move down 5 pixels every frame the key is held
+		}
+		if (btn2_pressed_left) {
+			player_rect2.x -= 5; // Move down 5 pixels every frame the key is held
+		}
+
+		// Prevent players from going off-screen
+		if (player_rect.x < 0) player_rect.x = 0;
+		if (player_rect.y < 0) player_rect.y = 0;
+		if (player_rect.x + player_rect.w > window_w) player_rect.x = window_w - player_rect.w;
+		if (player_rect.y + player_rect.h > window_h) player_rect.y = window_h - player_rect.h;
+
+		if (player_rect2.x < 0) player_rect2.x = 0;
+		if (player_rect2.y < 0) player_rect2.y = 0;
+		if (player_rect2.x + player_rect2.w > window_w) player_rect2.x = window_w - player_rect2.w;
+		if (player_rect2.y + player_rect2.h > window_h) player_rect2.y = window_h - player_rect2.h;
+
+
+		// Render & clear screen
+		// NOTE: `0x` prefix means we are expressing the number in hexadecimal (base 16)
+		//       `0b` is another useful prefix, expresses the number in binary
+		SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+		SDL_RenderClear(renderer);
+
+		// Draw Player Blue
+		SDL_SetRenderDrawColor(renderer, 0x3C, 0x63, 0xFF, 0XFF);
+		SDL_RenderFillRect(renderer, &player_rect);
+
+		// Draw Player Red
+		SDL_SetRenderDrawColor(renderer, 0xFF, 0x3C, 0x3C, 0xFF);
+		SDL_RenderFillRect(renderer, &player_rect2);
 
 		SDL_GetCurrentTime(&walltime_frame_end);
 		time_elapsed_frame = walltime_frame_end - walltime_frame_beg;
