@@ -243,10 +243,10 @@ static void game_reset(SDLContext* context, GameState* state)
 	player->position.y = (float)context->window_h / 2;
 	player->size = vec2f{ 64, 64 };
 	player->sprite = {
-		.texture = state->atlas,
-		.rect = SDL_FRect{ 0, 0, 128, 128 },
-		.tint = COLOR_WHITE,
-		.pivot = vec2f{ 0.5f, 0.5f }
+		state->atlas,
+		SDL_FRect{ 0, 0, 128, 128 },
+		COLOR_WHITE,
+		vec2f{ 0.5f, 0.5f }
 	};
 	player->collider_radius = 16;
 	state->player = player;
@@ -265,10 +265,10 @@ static void game_reset(SDLContext* context, GameState* state)
 		entity->size = vec2f{ 64, 64 };
 		entity->position = mul_element_wise(entity->size,  coords);
 		entity->sprite = {
-			.texture = state->atlas,
-			.rect = SDL_FRect{ 0, 4*128, 128, 128 },
-			.tint = COLOR_WHITE,
-			.pivot = vec2f{ 0.5f, 0.5f }
+			state->atlas,
+			SDL_FRect{ 0, 4*128, 128, 128 },
+			COLOR_WHITE,
+			vec2f{ 0.5f, 0.5f }
 		};
 		entity->collider_radius = 32;
 	}
