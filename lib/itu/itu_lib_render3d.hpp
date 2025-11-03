@@ -684,14 +684,14 @@ void acquare_basic_resources(SDLContext* context)
 	SDL_GPUVertexBufferDescription shader_base_vert_vertex_buffer_descriptions[] =
 	{
 		{
-			.slot = 1,
-			.pitch = sizeof(InstanceData),
-			.input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
+			1,
+			sizeof(InstanceData),
+			SDL_GPU_VERTEXINPUTRATE_INSTANCE,
 		},
 		{
-			.slot = 0,
-			.pitch = sizeof(VertexData),
-			.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX
+			0,
+			sizeof(VertexData),
+			SDL_GPU_VERTEXINPUTRATE_VERTEX
 		}
 	};
 
@@ -700,52 +700,52 @@ void acquare_basic_resources(SDLContext* context)
 	{
 		// position
 		{
-			.location = 0,
-			.buffer_slot = 0,
-			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
-			.offset = offsetof(VertexData, position)
+			0,
+			0,
+			SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
+			offsetof(VertexData, position)
 		},
 		// normal
 		{
-			.location = 1,
-			.buffer_slot = 0,
-			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
-			.offset = offsetof(VertexData, normal)
+			1,
+			0,
+			SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
+			offsetof(VertexData, normal)
 		},
 		// uv
 		{
-			.location = 2,
-			.buffer_slot = 0,
-			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
-			.offset = offsetof(VertexData, uv)
+			2,
+			0,
+			SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+			offsetof(VertexData, uv)
 		},
 		// instance transform - col 0
 		{
-			.location = 3,
-			.buffer_slot = 1,
-			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
-			.offset = offsetof(InstanceData, transform_global) + sizeof(float[4]) * 0
+			3,
+			1,
+			SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+			offsetof(InstanceData, transform_global) + sizeof(float[4]) * 0
 		},
 		// instance transform - col 1
 		{
-			.location = 4,
-			.buffer_slot = 1,
-			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
-			.offset = offsetof(InstanceData, transform_global) + sizeof(float[4]) * 1
+			4,
+			1,
+			SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+			offsetof(InstanceData, transform_global) + sizeof(float[4]) * 1
 		},
 		// instance transform - col 2
 		{
-			.location = 5,
-			.buffer_slot = 1,
-			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
-			.offset = offsetof(InstanceData, transform_global) + sizeof(float[4]) * 2
+			5,
+			1,
+			SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+			offsetof(InstanceData, transform_global) + sizeof(float[4]) * 2
 		},
 		// instance transform - col 3
 		{
-			.location = 6,
-			.buffer_slot = 1,
-			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
-			.offset = offsetof(InstanceData, transform_global)  + sizeof(float[4]) * 3
+			6,
+			1,
+			SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+			offsetof(InstanceData, transform_global)  + sizeof(float[4]) * 3
 		},
 	};
 
@@ -773,13 +773,11 @@ void acquare_basic_resources(SDLContext* context)
 	pipeline_def.depth_stencil_state.enable_depth_test = true;
 	pipeline_def.depth_stencil_state.enable_depth_write = true;
 	pipeline_def.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS;
-	pipeline_def.target_info = SDL_GPUGraphicsPipelineTargetInfo
-	{
-		.color_target_descriptions = &color_target_descriptions,
-		.num_color_targets = 1,
-		.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D24_UNORM,
-		.has_depth_stencil_target = true
-	};
+	pipeline_def.target_info = { 0 };
+	pipeline_def.target_info.color_target_descriptions = &color_target_descriptions;
+	pipeline_def.target_info.num_color_targets = 1;
+	pipeline_def.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
+	pipeline_def.target_info.has_depth_stencil_target = true;
 
 	ctx_rendering.pipeline = SDL_CreateGPUGraphicsPipeline(ctx_rendering.device, &pipeline_def);
 	

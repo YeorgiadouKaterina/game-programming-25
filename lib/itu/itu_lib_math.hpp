@@ -121,7 +121,24 @@ glm::quat itu_lib_math_to_quaternion_safe(glm::vec3 eulerAngles) {
 	sorted.y = eulerAngles.y;
 	sorted.z = eulerAngles.z;
 	
-	float c1 = glm::cos(sorted.y / 2);
+	float c1 = glm::cos(sorted.x / 2);
+	float s1 = glm::sin(sorted.x / 2);
+	float c2 = glm::cos(sorted.y / 2);
+	float s2 = glm::sin(sorted.y / 2);
+	float c3 = glm::cos(sorted.z / 2);
+	float s3 = glm::sin(sorted.z / 2);
+	float c1c2 = c1 * c2;
+	float s1s2 = s1 * s2;
+
+	return {
+		-s1*s2*s3 + c1*c2*c3,
+		+s1*c2*c3 + s2*s3*c1,
+		-s1*s3*c2 + s2*c1*c3,
+		+s1*s2*c3 + s3*c1*c2
+	};
+
+	/*
+	loat c1 = glm::cos(sorted.y / 2);
 	float s1 = glm::sin(sorted.y / 2);
 	float c2 = glm::cos(sorted.x / 2);
 	float s2 = glm::sin(sorted.x / 2);
@@ -129,13 +146,12 @@ glm::quat itu_lib_math_to_quaternion_safe(glm::vec3 eulerAngles) {
 	float s3 = glm::sin(sorted.z / 2);
 	float c1c2 = c1 * c2;
 	float s1s2 = s1 * s2;
-
 	return {
 		s1*s2*s3 + c1*c2*c3,
 		s1*s3*c2 + s2*c1*c3,
 		s1*c2*c3 - s2*s3*c1,
 		-s1*s2*c3 + s3*c1*c2
-	};
+	};*/
 }
 
 void itu_lib_math_reset_rotation(glm::mat4 *matrix)

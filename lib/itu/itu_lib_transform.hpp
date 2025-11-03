@@ -38,7 +38,7 @@ void itu_lib_transform_update_globals();
 
 static Transform3D TMP_transform_root = 
 {
-	.TMP_id = -1
+	-1
 };
 
 void transform_hierarchy_remove(Transform3D* ptr, Transform3D* parent_old);

@@ -641,7 +641,7 @@ int main(void)
 		SDL_SetRenderScale(context.renderer, context.zoom, context.zoom);
 	}
 	
-	itu_lib_imgui_setup(context.window, &context, true);
+	itu_lib_imgui_setup(&context, context.renderer, true);
 
 	context.camera_default.normalized_screen_size.x = 0.5f;
 	context.camera_default.normalized_screen_size.y = 1.0f;
