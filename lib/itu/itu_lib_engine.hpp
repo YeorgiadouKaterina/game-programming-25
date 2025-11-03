@@ -98,13 +98,16 @@ struct SDLContext
 			bool btn_isjustpressed_space;
 		};
 	};
+
 	vec2f mouse_pos;
+	vec2f mouse_delta;
 	float mouse_scroll;
 
 	stbds_hm(SDL_Keycode, BtnType) mappings_keyboard;
 	stbds_hm(Uint8, BtnType)       mappings_mouse;
 
 	bool debug_ui_show;
+	bool debug_switch_camera;
 };
 
 #define TRANSFORM_DEFAULT Transform { { 0, 0 }, { 1, 1 }, 0 }
@@ -118,6 +121,7 @@ vec2f point_window_to_screen(SDLContext* context, vec2f p);
 void sdl_input_clear(SDLContext* context);
 void sdl_input_key_process(SDLContext* context, BtnType button_id, SDL_Event* event);
 SDL_Texture* texture_create(SDLContext* context, const char* path, SDL_ScaleMode mode);
+Uint8* texture_load_raw(const char* path, int num_channels_requested, int* w, int* h, int* num_channels_read);
 void sdl_set_render_draw_color(SDLContext* context, color c);
 void sdl_set_texture_tint(SDL_Texture* texture, color c);
 
@@ -321,6 +325,8 @@ bool sdl_process_events(SDLContext* context)
 			{
 				context->mouse_pos.x = event.motion.x;
 				context->mouse_pos.y = event.motion.y;
+				context->mouse_delta.x = event.motion.xrel;
+				context->mouse_delta.y = event.motion.yrel;
 				break;
 			}
 			// listen for mouse wheel and store the relative position in screen space
@@ -342,12 +348,15 @@ bool sdl_process_events(SDLContext* context)
 				// debug ui (explicit fallthrough)
 				if(event.key.key == SDLK_F1 && !event.key.repeat)
 					context->debug_ui_show = !context->debug_ui_show;
+				if(event.key.key == SDLK_F2 && !event.key.repeat)
+					context->debug_switch_camera = !context->debug_switch_camera;
 			}
 			case SDL_EVENT_KEY_UP:
 			{
 				int i = stbds_hmgeti(context->mappings_keyboard, event.key.key);
 				if(i != -1)
 					sdl_input_key_process(context, context->mappings_keyboard[i].value, &event);
+
 				break;
 			}
 		}
@@ -366,11 +375,8 @@ SDL_Texture* texture_create(SDLContext* context, const char* path, SDL_ScaleMode
 	const int num_components_requested = 4;
 
 	int w=0, h=0, n=0;
-	unsigned char* pixels = stbi_load(path, &w, &h, &n, num_components_requested);
+	unsigned char* pixels = texture_load_raw(path, num_components_requested, &w, &h, &n);
 	
-	// TODO how do we recover from inability to load the asset? Do we want to?
-	SDL_assert(pixels);
-
 	SDL_Surface* surface = SDL_CreateSurfaceFrom(w, h, pixel_format, pixels, w * num_components_requested);
 
 	SDL_Texture* ret = SDL_CreateTextureFromSurface(context->renderer, surface);
@@ -381,6 +387,15 @@ SDL_Texture* texture_create(SDLContext* context, const char* path, SDL_ScaleMode
 
 	return ret;
 }
+
+Uint8* texture_load_raw(const char* path, int num_channels_requested, int* w, int* h, int* num_channels_read)
+{
+	unsigned char* pixels = stbi_load(path, w, h, num_channels_read, num_channels_requested);
+
+	SDL_assert(pixels);
+
+	return pixels;
+};
 
 void sdl_set_render_draw_color(SDLContext* context, color c)
 {

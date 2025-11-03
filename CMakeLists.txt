@@ -4,8 +4,9 @@ project(gp25_exercises)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-FILE(COPY data DESTINATION ${CMAKE_BINARY_DIR})
+set(ASSIMP_WARNINGS_AS_ERRORS OFF)
 
+FILE(COPY data DESTINATION ${CMAKE_BINARY_DIR})
 
 set(SDLMIXER_VENDORED OFF)
 
@@ -14,11 +15,9 @@ add_subdirectory(lib/SDL)
 add_subdirectory(lib/SDL_mixer)
 add_subdirectory(lib/SDL_ttf)
 add_subdirectory(lib/box2d)
-# changed imgui to be compiled as part of the game executable
 add_subdirectory(lib/imgui)
-
-# our libraries
 include_directories(lib/stb)
+add_subdirectory(lib/assimp)
 
 # repo's executables
 add_subdirectory(examples)

@@ -1,5 +1,6 @@
 ﻿#ifndef ITU_UNITY_BUILD
 #include <itu_entity_storage.hpp>
+#include <itu_lib_transform.hpp>
 #include <imgui/imgui.h>
 #endif
 
@@ -80,7 +81,7 @@ void  itu_component_pool_data_get(ITU_Component* component_pool, ITU_EntityId en
 void  itu_component_pool_data_set(ITU_Component* component_pool, ITU_EntityId entity, void* in_data_copy);
 void  itu_component_pool_remove(ITU_Component* component_pool, ITU_EntityId entity);
 void  itu_component_pool_clear(ITU_Component* component_pool);
-int   itu_system_get_matching_entities(ITU_System* system, ITU_EntityId* out_entitiy_group);
+int   itu_system_get_matching_entities(ITU_System* system, ITU_EntityId* out_entity_group);
 
 ITU_Component* itu_component_pool_create(Uint64 element_size, Uint64 total_num_component, const char* component_name)
 {
@@ -118,7 +119,7 @@ void itu_sys_estorage_add_component_debug_ui_render(ITU_ComponentType component_
 void itu_sys_estorage_init(int starting_entities_count, bool enable_standard_components=true)
 {
 	// allocate a minimum of elements at initialization time, to minimize early reallocs
-	stbds_arrsetlen(ctx_estorage.entities, starting_entities_count);
+	stbds_arrsetcap(ctx_estorage.entities, starting_entities_count);
 	//stbds_hmset(ctx_estorage.entities_debug_names, starting_entities_count);
 
 	if(enable_standard_components)
@@ -128,12 +129,14 @@ void itu_sys_estorage_init(int starting_entities_count, bool enable_standard_com
 		enable_component(PhysicsData);
 		enable_component(PhysicsStaticData);
 		enable_component(ShapeData);
+		enable_component(Transform3D);
 
 		add_component_debug_ui_render(ShapeData, itu_debug_ui_render_shapedata);
 		add_component_debug_ui_render(Transform, itu_debug_ui_render_transform);
 		add_component_debug_ui_render(Sprite, itu_debug_ui_render_sprite);
 		add_component_debug_ui_render(PhysicsData, itu_debug_ui_render_physicsdata);
 		add_component_debug_ui_render(PhysicsStaticData, itu_debug_ui_render_physicsstaticdata);
+		add_component_debug_ui_render(Transform3D, itu_debug_ui_render_transform3D);
 
 		add_system(itu_system_physics       , component_mask(PhysicsData)                                  , 0);
 		add_system(itu_system_sprite_render , component_mask(Transform)   | component_mask(Sprite)         , 0);
@@ -161,6 +164,64 @@ void itu_sys_estorage_clear_all_entities()
 {
 	stbds_arrfree(ctx_estorage.entities);
 	stbds_arrfree(ctx_estorage.entities_free);
+}
+
+struct ComponentCompareWrapperData
+{
+	ITU_Component* component;
+	SDL_CompareCallback fn_compare;
+};
+
+int component_compare_wrapper(void* userdata, const void *a, const void* b)
+{
+	ComponentCompareWrapperData* data = (ComponentCompareWrapperData*)userdata;
+	const int idx_a = *(const int*)a;
+	const int idx_b = *(const int*)b;
+	const void* data_a = pointer_offset(const void*, data->component->data, data->component->element_size * idx_a);
+	const void* data_b = pointer_offset(const void*, data->component->data, data->component->element_size * idx_b);
+	return data->fn_compare(data_a, data_b);
+}
+
+void itu_sys_estorage_component_sort_data(ITU_ComponentType component_type, SDL_CompareCallback fn_compare)
+{
+	SDL_assert(component_type < ctx_estorage.components_count);
+
+	// sort parallel arrays
+	ITU_Component* component = ctx_estorage.components[component_type];
+
+	int idxs[ENTITIES_COUNT_MAX];
+	for(int i = 0; i < component->count_alive; ++i)
+		idxs[i] = i;
+
+	ComponentCompareWrapperData data = { component, fn_compare };
+	SDL_qsort_r(idxs, component->count_alive, sizeof(int), component_compare_wrapper, &data);
+
+
+	// FIXME stupid hack to avoid malloc a swap entity, needed because the following loop works under
+	//       the assumption that we will never have all entries in ITU_Component::data filled so
+	//       we can use the last one as swap location
+	//       this would not be a problem if we had a scratch arena, but proper allocation strategie had to be cut
+	//       from the course and I don't have time to create one under the hood just for this
+	SDL_assert(component->count_alive != component->count_max);
+	int   idx_data_swap = component->count_max;
+	void* ptr_data_swap = pointer_offset(void*, component->data, component->element_size * idx_data_swap);
+
+	for(int i = 0; i < component->count_alive; ++i)
+		if(i != idxs[i])
+		{
+			void* ptr_data_0 = pointer_offset(void*, component->data, component->element_size * i);
+			void* ptr_data_1 = pointer_offset(void*, component->data, component->element_size * idxs[i]);
+			SDL_memcpy(ptr_data_swap, ptr_data_0   , component->element_size);
+			SDL_memcpy(ptr_data_0   , ptr_data_1   , component->element_size);
+			SDL_memcpy(ptr_data_1   , ptr_data_swap, component->element_size);
+
+			ITU_EntityId id_swap = component->entity_ids[i];
+			component->entity_ids[i] = component->entity_ids[idxs[i]];
+			component->entity_ids[idxs[i]] = id_swap;
+
+			component->data_loc[component->entity_ids[i].index] = i;
+			component->data_loc[component->entity_ids[idxs[i]].index] = idxs[i];
+		}
 }
 
 void itu_sys_estorage_set_systems(ITU_SystemDef* systems, int systems_count)
@@ -219,7 +280,7 @@ void itu_sys_estorage_add_system(ITU_SystemDef system_def)
 }
 
 
-int itu_system_get_matching_entities(ITU_System* system, ITU_EntityId* out_entitiy_group)
+int itu_system_get_matching_entities(ITU_System* system, ITU_EntityId* out_entity_group)
 {
 	ITU_EntityId* min_component;
 	Uint64  min_component_size = ENTITIES_COUNT_MAX + 1;
@@ -271,7 +332,7 @@ int itu_system_get_matching_entities(ITU_System* system, ITU_EntityId* out_entit
 			}
 		}
 		if(!filter_out)
-			out_entitiy_group[system_ids_count++] = entity_curr;
+			out_entity_group[system_ids_count++] = entity_curr;
 	}
 
 	return system_ids_count;
@@ -290,6 +351,15 @@ void itu_sys_estorage_systems_update(SDLContext* context)
 }
 
 enum ITU_SysEstorageDebugDetailCategory { ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY, ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM, ITU_SYS_ESTORAGE_DETAIL_CATEGORY_MAX };
+
+struct ITU_DebugWindowCtx
+{
+	
+	// TODO make this into a context struct
+	ITU_SysEstorageDebugDetailCategory detail_category = ITU_SYS_ESTORAGE_DETAIL_CATEGORY_MAX;
+	int loc_selected = -1;
+};
+ITU_DebugWindowCtx ctx_debug_window = { ITU_SYS_ESTORAGE_DETAIL_CATEGORY_MAX, -1 };
 
 void itu_sys_estorage_debug_render_detail_entity(SDLContext* context, ITU_EntityId id)
 {
@@ -372,74 +442,134 @@ void itu_sys_estorage_debug_render_detail_system(SDLContext* context, ITU_System
 	ImGui::PopStyleVar();
 }
 
+int itu_sys_estorage_list_entities_alive(ITU_EntityId* arr_entities, int arr_entities_max)
+{
+	int entities_count = stbds_arrlen(ctx_estorage.entities);
+
+	int ret = 0;
+	for(int i = 0; i < entities_count; ++i)
+		if(itu_entity_is_valid(ctx_estorage.entities[i].id))
+			arr_entities[ret++] = ctx_estorage.entities[i].id;
+
+	return ret;
+}
+
+void itu_sys_estorage_debug_render_entity_table()
+{
+	int entities_count = stbds_arrlen(ctx_estorage.entities);
+	if(ImGui::BeginTable("debug_estorage_master_entities", 5, ImGuiTableFlags_SizingFixedFit))
+	{
+		ImGui::TableSetupColumn("");
+		ImGui::TableSetupColumn("");
+		ImGui::TableSetupColumn("name");
+		ImGui::TableSetupColumn("gen");
+		ImGui::TableSetupColumn("idx");
+		ImGui::TableHeadersRow();
+		int row_idx = 0;
+		for(int i = 0; i < entities_count; ++i)
+		{
+			ITU_EntityId id = ctx_estorage.entities[i].id;
+			if(!itu_entity_is_valid(id))
+				continue;
+			ImGui::TableNextRow();
+
+			ImGui::TableNextColumn();
+			char buf_del[48];
+			SDL_snprintf(buf_del, 48, "X##%3ddebug_estorage_master_entities", row_idx);
+			if(ImGui::Button(buf_del))
+			{
+				itu_entity_destroy(id);
+				ctx_debug_window.loc_selected = -1;
+			}
+
+			ImGui::TableNextColumn();
+			char buf_id[48];
+			SDL_snprintf(buf_id, 48, "%3d##debug_estorage_master_entities", row_idx);
+			if(ImGui::Selectable(
+				buf_id,
+				ctx_debug_window.detail_category == ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY && row_idx == ctx_debug_window.loc_selected,
+				ImGuiSelectableFlags_SpanAllColumns
+			))
+			{
+				ctx_debug_window.loc_selected = i;
+				ctx_debug_window.detail_category = ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY;
+			}
+
+			ImGui::TableNextColumn();
+			int pos_debug_name = stbds_hmgeti(ctx_estorage.entities_debug_names, id);
+			if(pos_debug_name != -1)
+				ImGui::Text("%s", ctx_estorage.entities_debug_names[pos_debug_name].value);
+
+
+			ImGui::TableNextColumn();
+			ImGui::Text("%d", id.generation);
+
+			ImGui::TableNextColumn();
+			ImGui::Text("%d", id.index);
+
+			++row_idx;
+		}
+
+		ImGui::EndTable();
+	}
+}
+
+void do_transform_tree_recursive(ITU_Component* transform_component, Transform3D* curr)
+{
+	int loc = (curr - (Transform3D*)transform_component->data);
+
+	ITU_EntityId id = transform_component->entity_ids[loc];
+	const char* entity_name = stbds_hmget(ctx_estorage.entities_debug_names, id);
+	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_DrawLinesToNodes | ImGuiTreeNodeFlags_OpenOnArrow;
+	if(!curr->child_first)
+		flags |= ImGuiTreeNodeFlags_Leaf;
+	if(id.index == ctx_debug_window.loc_selected)
+		flags |= ImGuiTreeNodeFlags_Selected;
+
+	// TODO FIXME this is terrible, but we can't afford duplicated or NULL strings passed as id to Imgui
+	char buf_id[64];
+	if(entity_name)
+		SDL_snprintf(buf_id, 64, "%s", entity_name);
+	else
+		SDL_snprintf(buf_id, 64, "(%d %d)", id.generation, id.index);
+	
+	bool is_open = ImGui::TreeNodeEx(buf_id, flags);
+	if(ImGui::IsItemClicked())
+	{
+		SDL_Log("%s clicked", entity_name);
+		ctx_debug_window.detail_category = ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY;
+		ctx_debug_window.loc_selected = id.index;
+	}
+
+	if(is_open)
+	{
+		if(curr->child_first)
+			do_transform_tree_recursive(transform_component, curr->child_first);
+		ImGui::TreePop();
+	}
+
+	if(curr->sibling_next)
+		do_transform_tree_recursive(transform_component, curr->sibling_next);
+}
+
 void itu_sys_estorage_debug_render(SDLContext* context)
 {
-	static ITU_SysEstorageDebugDetailCategory detail_category = ITU_SYS_ESTORAGE_DETAIL_CATEGORY_MAX;
-	static int loc_selected = -1;
-
 	ITU_EntityId selected_system_ids[ENTITIES_COUNT_MAX];
 	int selected_system_ids_count;
 
 	ImGui::BeginChild("debug_estorage_master", ImVec2(200, 0), ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX);
 	{
+		if(ImGui::CollapsingHeader("Transform Hierarchy", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			// tree structure with tree pointers
+			ITU_Component* transform_component = ctx_estorage.components[ITU_COMPONENT_TYPE_Transform3D];
+			do_transform_tree_recursive(transform_component, (Transform3D*)TMP_transform_root.child_first);
+		}
+
 		if(ImGui::CollapsingHeader("Entities", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			int entities_count = stbds_arrlen(ctx_estorage.entities);
-			if(ImGui::BeginTable("debug_estorage_master_entities", 5, ImGuiTableFlags_SizingFixedFit))
-			{
-
-				ImGui::TableSetupColumn("");
-				ImGui::TableSetupColumn("");
-				ImGui::TableSetupColumn("name");
-				ImGui::TableSetupColumn("gen");
-				ImGui::TableSetupColumn("idx");
-				ImGui::TableHeadersRow();
-				int row_idx = 0;
-				for(int i = 0; i < entities_count; ++i)
-				{
-					ITU_EntityId id = ctx_estorage.entities[i].id;
-					if(!itu_entity_is_valid(id))
-						continue;
-					ImGui::TableNextRow();
-
-					ImGui::TableNextColumn();
-					char buf_del[48];
-					SDL_snprintf(buf_del, 48, "X##%3ddebug_estorage_master_entities", row_idx);
-					if(ImGui::Button(buf_del))
-					{
-						itu_entity_destroy(id);
-						loc_selected = -1;
-					}
-
-					ImGui::TableNextColumn();
-					char buf_id[48];
-					SDL_snprintf(buf_id, 48, "%3d##debug_estorage_master_entities", row_idx);
-					if(ImGui::Selectable(
-						buf_id,
-						detail_category == ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY && row_idx == loc_selected,
-						ImGuiSelectableFlags_SpanAllColumns
-					))
-					{
-						loc_selected = i;
-						detail_category = ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY;
-					}
-
-					ImGui::TableNextColumn();
-					int pos_debug_name = stbds_hmgeti(ctx_estorage.entities_debug_names, id);
-					if(pos_debug_name != -1)
-						ImGui::Text("%s", ctx_estorage.entities_debug_names[pos_debug_name].value);
-
-					ImGui::TableNextColumn();
-					ImGui::Text("%d", id.generation);
-
-					ImGui::TableNextColumn();
-					ImGui::Text("%d", id.index);
-
-					++row_idx;
-				}
-
-				ImGui::EndTable();
-			}
+			// linear tabulated list of entities
+			itu_sys_estorage_debug_render_entity_table();
 		}
 
 		if(ImGui::CollapsingHeader("Systems", ImGuiTreeNodeFlags_DefaultOpen))
@@ -462,12 +592,12 @@ void itu_sys_estorage_debug_render(SDLContext* context)
 					SDL_snprintf(buf_id, 48, "%3d##debug_estorage_master_systems", i);
 					if(ImGui::Selectable(
 						buf_id,
-						detail_category == ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM && i == loc_selected,
+						ctx_debug_window.detail_category == ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM && i == ctx_debug_window.loc_selected,
 						ImGuiSelectableFlags_SpanAllColumns
 					))
 					{
-						loc_selected = i;
-						detail_category = ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM;
+						ctx_debug_window.loc_selected = i;
+						ctx_debug_window.detail_category = ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM;
 					}
 
 					ImGui::TableNextColumn();
@@ -486,7 +616,7 @@ void itu_sys_estorage_debug_render(SDLContext* context)
 					ITU_EntityId* system_ids;
 					int* system_ids_count;
 
-					if(detail_category == ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM && i == loc_selected)
+					if(ctx_debug_window.detail_category == ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM && i == ctx_debug_window.loc_selected)
 					{
 						system_ids = selected_system_ids;
 						system_ids_count = &selected_system_ids_count;
@@ -510,11 +640,11 @@ void itu_sys_estorage_debug_render(SDLContext* context)
 
 	ImGui::BeginChild("debug_estorage_detail", ImVec2(0, 0), ImGuiChildFlags_Border);
 	{
-		if(loc_selected != -1)
-			switch(detail_category)
+		if(ctx_debug_window.loc_selected != -1)
+			switch(ctx_debug_window.detail_category)
 			{
-				case ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY: itu_sys_estorage_debug_render_detail_entity(context, ctx_estorage.entities[loc_selected].id); break;
-				case ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM: itu_sys_estorage_debug_render_detail_system(context, &ctx_estorage.systems[loc_selected], selected_system_ids, selected_system_ids_count); break;
+				case ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY: itu_sys_estorage_debug_render_detail_entity(context, ctx_estorage.entities[ctx_debug_window.loc_selected].id); break;
+				case ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM: itu_sys_estorage_debug_render_detail_system(context, &ctx_estorage.systems[ctx_debug_window.loc_selected], selected_system_ids, selected_system_ids_count); break;
 				default: /* do nothing */ break;
 			}
 		ImGui::EndChild();
@@ -613,14 +743,22 @@ void  itu_entity_set_debug_name(ITU_EntityId id, const char* debug_name)
 	stbds_hmput(ctx_estorage.entities_debug_names, id, name_storage);
 }
 
+const char* itu_entity_get_debug_name(ITU_EntityId id)
+{
+	int loc = stbds_hmgeti(ctx_estorage.entities_debug_names, id);
+	if(loc == -1)
+		return NULL;
+	return ctx_estorage.entities_debug_names[loc].value;
+}
+
 bool itu_entity_equals(ITU_EntityId a, ITU_EntityId b)
 {
-	return a.generation == b.generation && a.generation == b.generation;
+	return a.generation == b.generation && a.index == b.index;
 }
 
 bool itu_entity_is_valid(ITU_EntityId id)
 {
-	return id.index != -1 && ctx_estorage.entities[id.index].id.generation == id.generation;
+	return id.index < ENTITIES_COUNT_MAX && id.index != -1 && ctx_estorage.entities[id.index].id.generation == id.generation;
 }
 
 void itu_entity_id_to_stringid(ITU_EntityId id, char* buffer, int max_len)
@@ -684,7 +822,7 @@ void* itu_entity_data_get(ITU_EntityId id, ITU_ComponentType component_type)
 
 	if(!itu_entity_is_valid(id))
 	{
-		SDL_Log("WARNING invalid entity\n");
+		//SDL_Log("WARNING invalid entity\n");
 		return NULL;
 	}
 

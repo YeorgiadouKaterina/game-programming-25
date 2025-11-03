@@ -552,3 +552,64 @@ int main(void)
 
 	return 0;
 };
+
+
+struct SerializedTransform;
+struct SerializedPlayerData;
+
+struct PlayerData
+{
+	int entities_num;
+};
+
+struct SerializationSceneHeader
+{
+	int transforms_count;
+	int players_count;
+};
+
+struct SerializationSceneData
+{
+	SerializationSceneHeader header;
+	
+	// dedicated data structures containing only what's needed
+	SerializedTransform* transforms;
+	SerializedPlayerData* players;
+};
+
+#include <itu_lib_engine.hpp>
+
+void foo()
+{
+Transform transforms[1024];
+int transforms_count;
+
+PlayerData players[1024];
+int players_count;
+
+
+
+// write
+SerializationSceneData serialized_scene; // filled above
+SDL_IOStream *fp_write = SDL_IOFromFile("scene.data", "wb+");
+SDL_WriteIO(fp_write, &serialized_scene.header, sizeof(SerializationSceneHeader));
+SDL_WriteIO(fp_write, serialized_scene.transforms, sizeof(Transform) * serialized_scene.header.transforms_count);
+SDL_WriteIO(fp_write, serialized_scene.players, sizeof(PlayerData) *serialized_scene.header.players_count);
+
+// read
+SerializationSceneData deserialized_scene;  // used below
+SDL_IOStream *fp_read = SDL_IOFromFile("scene.data", "rb");
+SDL_ReadIO(fp_read, &deserialized_scene.header, sizeof(SerializationSceneHeader));
+SDL_ReadIO(fp_read, serialized_scene.transforms, sizeof(Transform) * serialized_scene.header.transforms_count);
+SDL_ReadIO(fp_read, serialized_scene.players, sizeof(PlayerData) * serialized_scene.header.players_count);
+}
+
+
+
+
+Header header = { 0 };
+
+// when writing
+
+header.transforms_count = array_size(transforms);
+header.players_count = array_size(players);

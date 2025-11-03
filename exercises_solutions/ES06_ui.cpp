@@ -218,6 +218,7 @@ void ex6_system_imagebutton(SDLContext* context, ITU_EntityId* entity_ids, int e
 		if(SDL_PointInRectFloat((SDL_FPoint*)&mouse_camera_pos, &rect_dst))
 		{
 			sprite->tint = EX6_COLOR_BTN_HOVER;
+
 			if(imagebutton->fn_callback_hover)
 				imagebutton->fn_callback_hover(context, id);
 

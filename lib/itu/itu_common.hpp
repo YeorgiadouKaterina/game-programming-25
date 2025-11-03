@@ -25,10 +25,10 @@
 #define NS_TO_MILLIS(x)  ((float)(x)/(float)1000000)    // converts nanoseconds to milliseconds (in floating point precision)
 #define NS_TO_SECONDS(x) ((float)(x)/(float)1000000000) // converts nanoseconds to seconds (in floating point precision)
 
-#define KB(x) ((x) * 1000ll)   // converts kilobytes to bytes
-#define MB(x) (KB(x) * 1000ll) // converts megabytes to bytes
-#define GB(x) (MB(x) * 1000ll) // converts gigabytes to bytes
-#define TB(x) (GB(x) * 1000ll) // converts terabytes to bytes
+#define KB(x) ((x)   * 1024ll)   // converts kilobytes to bytes
+#define MB(x) (KB(x) * 1024ll) // converts megabytes to bytes
+#define GB(x) (MB(x) * 1024ll) // converts gigabytes to bytes
+#define TB(x) (GB(x) * 1024ll) // converts terabytes to bytes
 
 // returns the number of elements in an array
 // NOTE: this is one of the rare cases where arrays variables and pointer variables behave differently!
@@ -222,6 +222,11 @@ inline vec2f normalize(vec2f a)
 	return a * ( 1.0f / l);
 }
 
+inline bool check_equality(float a, float b)
+{
+	float tmp = SDL_fabsf(a - b);
+	return tmp < FLOAT_EPSILON;
+}
 // NOTE: this comparison checks if both componenents differ by less than FLOAT_EPSILON
 inline bool check_equality(vec2f a, vec2f b)
 {

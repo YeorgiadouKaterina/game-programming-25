@@ -70,9 +70,14 @@ register_component(Sprite)
 register_component(PhysicsData)
 register_component(PhysicsStaticData)
 register_component(ShapeData)
+register_component(Transform3D)
+register_component(MeshComponent)
+register_component(CameraComponent)
 
 void itu_sys_estorage_init(int starting_entities_count, bool enable_standard_components);
 void itu_sys_estorage_clear_all_entities();
+int  itu_sys_estorage_query_entities(Uint64 component_mask, Uint64 tag_mask);
+void itu_sys_estorage_component_sort_data(ITU_ComponentType component_type, SDL_CompareCallback fn_compare);
 void itu_sys_estorage_add_system(ITU_SystemDef system_def);
 void itu_sys_estorage_set_systems(ITU_SystemDef* systems, int systems_count);
 void itu_sys_estorage_systems_update(SDLContext* context);
@@ -82,6 +87,7 @@ void itu_sys_estorage_debug_render(SDLContext* context);
 
 ITU_EntityId itu_entity_create();
 void  itu_entity_set_debug_name  (ITU_EntityId id, const char* debug_name);
+const char* itu_entity_get_debug_name (ITU_EntityId id);
 bool  itu_entity_equals          (ITU_EntityId a, ITU_EntityId b);
 bool  itu_entity_is_valid        (ITU_EntityId id);
 void  itu_entity_id_to_stringid  (ITU_EntityId id, char* buffer, int max_len);

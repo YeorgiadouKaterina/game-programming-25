@@ -66,3 +66,7 @@ void itu_system_physics(SDLContext* context, ITU_EntityId* entity_ids, int entit
 		}
 	}
 }
+
+void itu_system_transform2D(SDLContext* context, ITU_EntityId* entity_ids, int entity_ids_count)
+{
+}
