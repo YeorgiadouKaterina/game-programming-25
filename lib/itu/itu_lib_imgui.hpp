@@ -11,7 +11,7 @@
 #endif
 
 void itu_lib_imgui_setup(SDLContext* context, bool intercept_keyboard);
-void itu_lib_imgui_setup(SDLContext* context, SDL_Renderer* renderer, bool intercept_keyboard);
+void itu_lib_imgui_setup(SDL_Window* window, SDLContext* context, bool intercept_keyboard);
 
 // default imgui event handler. Call this before doing your own processing of the SDL event
 // NOTE: a return value of `true` is a suggestion to skip processing of the event for the application
@@ -21,8 +21,10 @@ void itu_lib_imgui_frame_end(SDLContext* context);
 
 // older function, the renderer is already present in SDLContext
 // keeping it for back-compatibility with previous exercises
-void itu_lib_imgui_setup(SDLContext* context, SDL_Renderer* renderer, bool intercept_keyboard)
+void itu_lib_imgui_setup(SDL_Window* window, SDLContext* context, bool intercept_keyboard)
 {
+	// old exercises did not have the window in the context. Patching it here
+	context->window = window;
 	itu_lib_imgui_setup(context, intercept_keyboard);
 }
 

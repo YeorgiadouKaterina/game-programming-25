@@ -6,11 +6,11 @@
 #define TEXTURE_PIXELS_PER_UNIT 16    // how many pixels of textures will be mapped to a single world unit
 #define CAMERA_PIXELS_PER_UNIT  16*4  // how many pixels of windows will be used to render a single world unit
 
-#include <itu_unity_include.hpp>
-
 #define TARGET_FRAMERATE SECONDS(1) / 60
 #define WINDOW_W         800
 #define WINDOW_H         600
+
+#include <itu_unity_include.hpp>
 
 #define ENTITY_COUNT 4096
 

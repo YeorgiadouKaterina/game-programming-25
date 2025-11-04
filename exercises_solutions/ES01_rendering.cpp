@@ -55,7 +55,7 @@ const int   projectile_sprite_coords_y = 3;
 const float projectile_speed = entity_size_world * 6;
 const float projectile_cooldow = 0.1f;
 
-struct SDLContext
+struct ES1_SDLContext
 {
 	SDL_Renderer* renderer;
 	float window_w; // current window width after render zoom has been applied
@@ -107,7 +107,7 @@ struct GameState
 // 
 // NOTE: this function is very slow (it does a lot of trig. for instance)
 //       there are many ways to make this faster, any ideas?
-void draw_circle(SDLContext* context, float x, float y, float radius)
+void draw_circle(ES1_SDLContext* context, float x, float y, float radius)
 {
 	SDL_FPoint points[DEBUG_CIRCLE_POINT_COUNT+1];
 	
@@ -177,7 +177,7 @@ Entity* entity_spawn(Entity* pool, int max_amount, float x, float y, float veloc
 	return entity;
 }
 
-void entity_render(SDLContext* context, Entity* entity)
+void entity_render(ES1_SDLContext* context, Entity* entity)
 {
 	entity->rect.x = entity->position.x - entity->rect.w / 2;
 	entity->rect.y = entity->position.y - entity->rect.h / 2;
@@ -195,7 +195,7 @@ void entity_render(SDLContext* context, Entity* entity)
 		draw_circle(context, entity->position.x, entity->position.y, entity->size);
 }
 
-static void init(SDLContext* context, GameState* game_state)
+static void init(ES1_SDLContext* context, GameState* game_state)
 {
 	// reset game state
 	{
@@ -303,7 +303,7 @@ static void init(SDLContext* context, GameState* game_state)
 	}
 }
 
-static void update(SDLContext* context, GameState* game_state)
+static void update(ES1_SDLContext* context, GameState* game_state)
 {
 	if (game_state->game_over)
 		init(context, game_state);
@@ -445,7 +445,7 @@ static void update(SDLContext* context, GameState* game_state)
 
 int main(void)
 {
-	SDLContext context = { 0 };
+	ES1_SDLContext context = { 0 };
 	GameState game_state = { 0 };
 
 	float window_w = 600;
@@ -552,64 +552,3 @@ int main(void)
 
 	return 0;
 };
-
-
-struct SerializedTransform;
-struct SerializedPlayerData;
-
-struct PlayerData
-{
-	int entities_num;
-};
-
-struct SerializationSceneHeader
-{
-	int transforms_count;
-	int players_count;
-};
-
-struct SerializationSceneData
-{
-	SerializationSceneHeader header;
-	
-	// dedicated data structures containing only what's needed
-	SerializedTransform* transforms;
-	SerializedPlayerData* players;
-};
-
-#include <itu_lib_engine.hpp>
-
-void foo()
-{
-Transform transforms[1024];
-int transforms_count;
-
-PlayerData players[1024];
-int players_count;
-
-
-
-// write
-SerializationSceneData serialized_scene; // filled above
-SDL_IOStream *fp_write = SDL_IOFromFile("scene.data", "wb+");
-SDL_WriteIO(fp_write, &serialized_scene.header, sizeof(SerializationSceneHeader));
-SDL_WriteIO(fp_write, serialized_scene.transforms, sizeof(Transform) * serialized_scene.header.transforms_count);
-SDL_WriteIO(fp_write, serialized_scene.players, sizeof(PlayerData) *serialized_scene.header.players_count);
-
-// read
-SerializationSceneData deserialized_scene;  // used below
-SDL_IOStream *fp_read = SDL_IOFromFile("scene.data", "rb");
-SDL_ReadIO(fp_read, &deserialized_scene.header, sizeof(SerializationSceneHeader));
-SDL_ReadIO(fp_read, serialized_scene.transforms, sizeof(Transform) * serialized_scene.header.transforms_count);
-SDL_ReadIO(fp_read, serialized_scene.players, sizeof(PlayerData) * serialized_scene.header.players_count);
-}
-
-
-
-
-Header header = { 0 };
-
-// when writing
-
-header.transforms_count = array_size(transforms);
-header.players_count = array_size(players);

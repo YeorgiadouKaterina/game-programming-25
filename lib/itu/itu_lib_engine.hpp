@@ -112,14 +112,23 @@ struct SDLContext
 
 #define TRANSFORM_DEFAULT Transform { { 0, 0 }, { 1, 1 }, 0 }
 
+// defaout window size (this is NOT a good way to do this!)
+#define WINDOW_W 800
+#define WINDOW_H 600
+
 void camera_set_active(SDLContext* context, Camera* camera);
 SDL_FRect rect_global_to_screen(SDLContext* context, SDL_FRect rect);
 vec2f point_global_to_screen(SDLContext* context, vec2f p);
 vec2f point_screen_to_global(SDLContext* context, vec2f p);
 vec2f point_screen_to_window(SDLContext* context, vec2f p);
 vec2f point_window_to_screen(SDLContext* context, vec2f p);
+
+// NOTE: older exercises did not use sdl_ds, so can't link these
+#ifdef STB_DS_IMPLEMENTATION
 void sdl_input_clear(SDLContext* context);
-void sdl_input_key_process(SDLContext* context, BtnType button_id, SDL_Event* event);
+bool sdl_process_events(SDLContext* context);
+#endif
+
 SDL_Texture* texture_create(SDLContext* context, const char* path, SDL_ScaleMode mode);
 Uint8* texture_load_raw(const char* path, int num_channels_requested, int* w, int* h, int* num_channels_read);
 void sdl_set_render_draw_color(SDLContext* context, color c);
@@ -266,6 +275,14 @@ vec2f point_window_to_screen(SDLContext* context, vec2f p)
 	return ret;
 }
 
+
+// NOTE: older exercises did not include stb_ds, so they can't link these
+//       probably worth extracting input stuff in their own library
+#ifdef STB_DS_IMPLEMENTATION
+
+// forward declaration
+bool itu_lib_imgui_process_sdl_event(SDL_Event* event);
+
 void sdl_input_set_mapping_keyboard(SDLContext* context, SDL_Keycode key, BtnType input)
 {
 	stbds_hmput(context->mappings_keyboard, key, input);
@@ -299,10 +316,6 @@ void sdl_input_mouse_button_process(SDLContext* context, BtnType button_id, SDL_
 	context->btn_isjustpressed[button_id] = event->button.down && !context->btn_isjustpressed[button_id];
 	context->btn_isdown[button_id] = event->button.down;
 }
-
-
-// forward declaration
-bool itu_lib_imgui_process_sdl_event(SDL_Event* event);
 
 bool sdl_process_events(SDLContext* context)
 {
@@ -364,6 +377,7 @@ bool sdl_process_events(SDLContext* context)
 
 	return ret;
 }
+#endif
 
 SDL_Texture* texture_create(SDLContext* context, const char* path, SDL_ScaleMode mode)
 {

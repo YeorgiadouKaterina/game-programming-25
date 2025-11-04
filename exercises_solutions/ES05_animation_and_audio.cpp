@@ -190,14 +190,14 @@ void debug_ui_game_audio(GameState* state)
 
 	ImGui::DragFloat("music_crossfade_time_ms", &design_music_crossfade_time_ms, 10);
 	if(ImGui::DragFloat("volume_master", &state->volume_master, 0.05f, 0.0f, 1.0f))
-		sys_audio_set_gain_master(state->volume_master);
+		es5_sys_audio_set_gain_master(state->volume_master);
 	if(ImGui::DragFloat("volume_music", &state->volume_music, 0.05f, 0.0f, 1.0f))
-		sys_audio_set_gain_music(state->volume_music);
+		es5_sys_audio_set_gain_music(state->volume_music);
 	if(ImGui::DragFloat("volume_sfx", &state->volume_sfx, 0.05f, 0.0f, 1.0f))
-		sys_audio_set_gain_sfx(state->volume_sfx);
+		es5_sys_audio_set_gain_sfx(state->volume_sfx);
 
 	if(ImGui::Combo("current_music", &state->curr_music_idx, music_files, array_size(music_files)))
-		sys_audio_play_music(music_files[state->curr_music_idx], design_music_crossfade_time_ms);
+		es5_sys_audio_play_music(music_files[state->curr_music_idx], design_music_crossfade_time_ms);
 
 	ImGui::PopItemWidth();
 	ImGui::End();
@@ -225,8 +225,8 @@ static void add_terrain_piece(b2BodyId id, vec2f halfsize, vec2f position, float
 	b2CreatePolygonShape(id, &shape_def, &polygon);
 }
 
-static AudioKey KEY_SFX_FOOTSTEP;
-static AudioKey KEY_SFX_DOOR;
+static ES5_AudioKey KEY_SFX_FOOTSTEP;
+static ES5_AudioKey KEY_SFX_DOOR;
 
 static AnimationKey KEY_ANIM_WALK;
 static AnimationKey KEY_ANIM_IDLE;
@@ -282,19 +282,19 @@ static void game_init(SDLContext* context, GameState* state)
 
 	itu_sys_physics_init(context);
 
-	sys_audio_init(4);
+	es5_sys_audio_init(4);
 	
 	// audio
 	{
 		// here we see two different ways to handle resource references:
-		// 1. music ignores the `AudioKey` returned and always uses the string
+		// 1. music ignores the `ES5_AudioKey` returned and always uses the string
 		// 2. sound effects store the key and use it to interface with the audio system going forward
 		// using strings directly can make sense in certain situations (see L06 when we talk about tools and editors), but they ar epretty slow,
 		// even when hashed. At runtime, games should always use keys (which can be read from file, so usually that's not a problem)
-		sys_audio_load(music_files[0], true);
-		sys_audio_load(music_files[1], true);
-		KEY_SFX_FOOTSTEP = sys_audio_load("data/kenney/SFX/footstep00.ogg", true);
-		KEY_SFX_DOOR     = sys_audio_load("data/kenney/SFX/doorClose_1.ogg", true);
+		es5_sys_audio_load(music_files[0], true);
+		es5_sys_audio_load(music_files[1], true);
+		KEY_SFX_FOOTSTEP = es5_sys_audio_load("data/kenney/SFX/footstep00.ogg", true);
+		KEY_SFX_DOOR     = es5_sys_audio_load("data/kenney/SFX/doorClose_1.ogg", true);
 
 		// arbitrary decision to make audio settings not reset with games
 		// in an actual game those would be stored togheter with savefiles and read form a file,
@@ -317,7 +317,7 @@ static void game_reset(SDLContext* context, GameState* state)
 
 	sys_animation_reset(&state->player_animation_data);
 
-	sys_audio_play_music_immediate(music_files[state->curr_music_idx]);
+	es5_sys_audio_play_music_immediate(music_files[state->curr_music_idx]);
 
 	// player
 	{

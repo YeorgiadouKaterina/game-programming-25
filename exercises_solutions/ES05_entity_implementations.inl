@@ -173,7 +173,7 @@ void player_update(SDLContext* context, Entity* entity, PlayerData* player_data,
 			// in a fully fledged animation system, these kind of operations would be performed at callbacks,
 			// set up to trigger either at a certain points in the timeline or when transitioning between states
 			if(animation_data->anim_current_key == KEY_ANIM_WALK && (animation_data->anim_current_frame == 1 || animation_data->anim_current_frame == 5))
-				sys_audio_play_sfx(KEY_SFX_FOOTSTEP);
+				es5_sys_audio_play_sfx(KEY_SFX_FOOTSTEP);
 		}
 
 		// similarly as above, we could set the frame only when stuff actuall change and when we change frame, instead of every frame

@@ -516,6 +516,9 @@ void itu_sys_estorage_debug_render_entity_table()
 
 void do_transform_tree_recursive(ITU_Component* transform_component, Transform3D* curr)
 {
+	if(!curr)
+		return;
+
 	int loc = (curr - (Transform3D*)transform_component->data);
 
 	ITU_EntityId id = transform_component->entity_ids[loc];

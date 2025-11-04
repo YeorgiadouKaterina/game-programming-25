@@ -1,3 +1,10 @@
+// define some reasonable defaults if the main game doesn't set up proper data
+#define PHYSICS_TIMESTEP_NSECS  SECONDS(1) / 60
+#define PHYSICS_TIMESTEP_SECS   NS_TO_SECONDS(PHYSICS_TIMESTEP_NSECS)
+#define PHYSICS_MAX_TIMESTEPS_PER_FRAME 4
+#define PHYSICS_MAX_CONTACTS_PER_ENTITY 16
+
+
 void itu_system_sprite_render(SDLContext* context, ITU_EntityId* entity_ids, int entity_ids_count)
 {
 	for(int i = 0; i < entity_ids_count; ++i)

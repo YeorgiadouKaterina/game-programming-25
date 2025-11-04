@@ -12,9 +12,9 @@
 
 #define NUM_TRACKS_MAX 32
 
-typedef size_t AudioKey;
+typedef size_t ES5_AudioKey;
 
-struct AudioData
+struct ES5_AudioData
 {
 	// MIX
 	MIX_Mixer* mixer;
@@ -29,31 +29,31 @@ struct AudioData
 	float gain_music;
 	float gain_sfx;
 
-	stbds_hm(AudioKey, MIX_Audio*)  audio_files;
+	stbds_hm(ES5_AudioKey, MIX_Audio*)  audio_files;
 };
 
-AudioData sys_audio_data;
+ES5_AudioData sys_audio_data;
 
-void sys_audio_init(int tracks_count);
-AudioKey sys_audio_load(const char* path, bool preload);
-void sys_audio_play_music(AudioKey key, Sint64 crossfade_duration_ms);
-void sys_audio_play_music_immediate(AudioKey key);
-void sys_audio_play_sfx(AudioKey key);
-void sys_audio_set_gain_master(float gain);
-void sys_audio_set_gain_music(float gain);
-void sys_audio_set_gain_sfx(float gain);
-
-// convenience method that get the path directly instead of the key,
-// game at runtime should use the `AudioKey` version of the API instead
-void sys_audio_play_music(const char* path, Sint64 crossfade_duration_ms);
+void es5_sys_audio_init(int tracks_count);
+ES5_AudioKey es5_sys_audio_load(const char* path, bool preload);
+void es5_sys_audio_play_music(ES5_AudioKey key, Sint64 crossfade_duration_ms);
+void es5_sys_audio_play_music_immediate(ES5_AudioKey key);
+void es5_sys_audio_play_sfx(ES5_AudioKey key);
+void es5_sys_audio_set_gain_master(float gain);
+void es5_sys_audio_set_gain_music(float gain);
+void es5_sys_audio_set_gain_sfx(float gain);
 
 // convenience method that get the path directly instead of the key,
-// game at runtime should use the `AudioKey` version of the API instead
-void sys_audio_play_music_immediate(const char* path);
+// game at runtime should use the `ES5_AudioKey` version of the API instead
+void es5_sys_audio_play_music(const char* path, Sint64 crossfade_duration_ms);
 
 // convenience method that get the path directly instead of the key,
-// game at runtime should use the `AudioKey` version of the API instead
-void sys_audio_play_sfx(const char* path);
+// game at runtime should use the `ES5_AudioKey` version of the API instead
+void es5_sys_audio_play_music_immediate(const char* path);
+
+// convenience method that get the path directly instead of the key,
+// game at runtime should use the `ES5_AudioKey` version of the API instead
+void es5_sys_audio_play_sfx(const char* path);
 
 #endif // ES05_SYS_AUDIO_HPP
 
@@ -61,7 +61,7 @@ void sys_audio_play_sfx(const char* path);
 
 // internal methods
 
-inline MIX_Audio* get_audio(AudioKey key); 
+inline MIX_Audio* get_audio(ES5_AudioKey key); 
 
 // plays the given audio on the given track
 inline void play_audio(int track_idx, MIX_Audio* audio, float gain, SDL_PropertiesID props); 
@@ -69,7 +69,7 @@ inline void play_audio(int track_idx, MIX_Audio* audio, float gain, SDL_Properti
 // returns the first free track, OR the track that started playing the earliest
 inline int find_track(); 
 
-MIX_Audio* get_audio(AudioKey key)
+MIX_Audio* get_audio(ES5_AudioKey key)
 {
 	size_t loc = stbds_hmgeti(sys_audio_data.audio_files, key);
 	if(loc == -1)
@@ -109,7 +109,7 @@ int find_track()
 	return oldest_start_idx;
 }
 
-void sys_audio_init(int tracks_count)
+void es5_sys_audio_init(int tracks_count)
 {
 	if(tracks_count > NUM_TRACKS_MAX)
 	{
@@ -131,11 +131,11 @@ void sys_audio_init(int tracks_count)
 	sys_audio_data.gain_sfx = 1.0f;
 }
 
-AudioKey sys_audio_load(const char* path, bool preload)
+ES5_AudioKey es5_sys_audio_load(const char* path, bool preload)
 {
 	// NOTE: casting from const to non-const is usually a bad idea,
 	//       but in this case we know that `stbds_hash_string` does not modify our pointer so it's fine. 
-	AudioKey key = stbds_hash_string((char*)path, 0);
+	ES5_AudioKey key = stbds_hash_string((char*)path, 0);
 
 	if(stbds_hmgeti(sys_audio_data.audio_files, key) >= 0)
 	{
@@ -151,7 +151,7 @@ AudioKey sys_audio_load(const char* path, bool preload)
 	return key;
 }
 
-void sys_audio_play_music(AudioKey key, Sint64 crossfade_duration_ms)
+void es5_sys_audio_play_music(ES5_AudioKey key, Sint64 crossfade_duration_ms)
 {
 	MIX_Audio* audio = get_audio(key);
 
@@ -173,7 +173,7 @@ void sys_audio_play_music(AudioKey key, Sint64 crossfade_duration_ms)
 	sys_audio_data.track_music_ref = track_idx;
 }
 
-void sys_audio_play_music_immediate(AudioKey key)
+void es5_sys_audio_play_music_immediate(ES5_AudioKey key)
 {
 	MIX_Audio* audio = get_audio(key);
 	
@@ -182,7 +182,7 @@ void sys_audio_play_music_immediate(AudioKey key)
 	play_audio(sys_audio_data.track_music_ref, audio, sys_audio_data.gain_music, 0);
 }
 
-void sys_audio_play_sfx(AudioKey key)
+void es5_sys_audio_play_sfx(ES5_AudioKey key)
 {
 	int track_idx = find_track();
 	MIX_Audio* audio = get_audio(key);
@@ -190,12 +190,12 @@ void sys_audio_play_sfx(AudioKey key)
 	play_audio(track_idx, audio, sys_audio_data.gain_sfx, 0);
 }
 
-void sys_audio_set_gain_master(float gain)
+void es5_sys_audio_set_gain_master(float gain)
 {
 	MIX_SetMasterGain(sys_audio_data.mixer, gain);
 }
 
-void sys_audio_set_gain_music(float gain)
+void es5_sys_audio_set_gain_music(float gain)
 {
 	sys_audio_data.gain_music = gain;
 
@@ -204,7 +204,7 @@ void sys_audio_set_gain_music(float gain)
 		MIX_SetTrackGain(sys_audio_data.tracks[track_idx], gain);
 }
 
-void sys_audio_set_gain_sfx(float gain)
+void es5_sys_audio_set_gain_sfx(float gain)
 {
 	sys_audio_data.gain_sfx = gain;
 	for(int i = 0; i < sys_audio_data.tracks_count; ++i)
@@ -215,22 +215,22 @@ void sys_audio_set_gain_sfx(float gain)
 	}
 }
 
-void sys_audio_play_music(const char* path, Sint64 crossfade_duration_ms)
+void es5_sys_audio_play_music(const char* path, Sint64 crossfade_duration_ms)
 {
-	AudioKey key = stbds_hash_string((char*)path, 0);
-	sys_audio_play_music(key, crossfade_duration_ms);
+	ES5_AudioKey key = stbds_hash_string((char*)path, 0);
+	es5_sys_audio_play_music(key, crossfade_duration_ms);
 }
 
-void sys_audio_play_music_immediate(const char* path)
+void es5_sys_audio_play_music_immediate(const char* path)
 {
-	AudioKey key = stbds_hash_string((char*)path, 0);
-	sys_audio_play_music_immediate(key);
+	ES5_AudioKey key = stbds_hash_string((char*)path, 0);
+	es5_sys_audio_play_music_immediate(key);
 }
 
-void sys_audio_play_sfx(const char* path)
+void es5_sys_audio_play_sfx(const char* path)
 {
-	AudioKey key = stbds_hash_string((char*)path, 0);
-	sys_audio_play_sfx(key);
+	ES5_AudioKey key = stbds_hash_string((char*)path, 0);
+	es5_sys_audio_play_sfx(key);
 }
 
 #endif // (defined ES05_SYS_AUDIO_IMPLEMENTATION) || (defined ITU_UNITY_BUILD)
