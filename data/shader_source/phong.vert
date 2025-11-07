@@ -9,6 +9,7 @@ layout(set = 1, binding = 0) uniform UBO_Frame {
 	// light
 	vec4 light_direction; // w = 1 is positional, w = 0 is directional;
 	vec4 light_color;
+	vec4 light_ambient_color;
 
 	// misc
 	float time;

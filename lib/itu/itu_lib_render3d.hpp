@@ -117,6 +117,7 @@ void itu_sys_render3d_set_camera_proj(glm::mat4 proj_matrix);
 void itu_sys_render3d_model3d_render(SDLContext* context, Model3D* data, InstanceData instance);
 void itu_sys_render3d_model3d_render_instanced(SDLContext* context, Model3D* data, InstanceData* instances, int instances_count);
 void itu_sys_render3d_frame_end(SDLContext* context);
+void itu_sys_render3d_frame_submit(SDLContext* context);
 
 #endif // ITU_RENDER_3D_HPP
 
@@ -657,8 +658,14 @@ void itu_sys_render3d_frame_end(SDLContext* context)
 	{
 		SDL_Log("failed acquiring swapchain texture");
 	}
+}
+
+void itu_sys_render3d_frame_submit(SDLContext* context)
+{
 	VALIDATE_PANIC(SDL_SubmitGPUCommandBuffer(ctx_rendering.command_buffer_render));
 }
+
+
 // =====================================================================================
 // private functions
 // =====================================================================================
@@ -750,7 +757,7 @@ void acquare_basic_resources(SDLContext* context)
 	};
 
 	ctx_rendering.depth_stencil_texture = gpu_texture_create(ctx_rendering.device, context->window_w, context->window_h, 1, SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET, SDL_GPU_TEXTUREFORMAT_D24_UNORM);
-	ctx_rendering.color_texture = gpu_texture_create(ctx_rendering.device, context->window_w, context->window_h, 1, SDL_GPU_TEXTUREUSAGE_COLOR_TARGET, SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM);
+	//ctx_rendering.color_texture = gpu_texture_create(ctx_rendering.device, context->window_w, context->window_h, 1, SDL_GPU_TEXTUREUSAGE_COLOR_TARGET, SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM);
 
 	SDL_GPUColorTargetDescription color_target_descriptions = { };
 	color_target_descriptions.format = SDL_GetGPUSwapchainTextureFormat(ctx_rendering.device, context->window);

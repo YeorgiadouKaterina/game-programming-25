@@ -350,7 +350,7 @@ void itu_sys_estorage_systems_update(SDLContext* context)
 	}
 }
 
-enum ITU_SysEstorageDebugDetailCategory { ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY, ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM, ITU_SYS_ESTORAGE_DETAIL_CATEGORY_MAX };
+enum ITU_SysEstorageDebugDetailCategory { ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY, ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM, ITU_SYS_ESTORAGE_DETAIL_CATEGORY_COMPONENT, ITU_SYS_ESTORAGE_DETAIL_CATEGORY_MAX };
 
 struct ITU_DebugWindowCtx
 {
@@ -442,6 +442,38 @@ void itu_sys_estorage_debug_render_detail_system(SDLContext* context, ITU_System
 	ImGui::PopStyleVar();
 }
 
+void itu_sys_estorage_debug_render_detail_component(SDLContext* context, ITU_Component* component)
+{
+	// sparse array
+	{
+		if(ImGui::BeginTable("entities", 2, ImGuiTableFlags_SizingFixedFit))
+		{
+			ImGui::TableSetupColumn("entity");
+			ImGui::TableSetupColumn("location");
+			ImGui::TableHeadersRow();
+
+			for(int i = 0; i < component->count_alive; ++i)
+			{
+				ITU_EntityId id = component->entity_ids[i];
+				ImGui::TableNextRow();
+
+				ImGui::TableNextColumn();
+				itu_debug_ui_widget_entityid_tablerow(id);
+
+				ImGui::TableNextColumn();
+				ImGui::Text("%d", i);
+			}
+			ImGui::EndTable();
+		}
+	}
+
+	//ImGui::SameLine();
+	//// locations
+	//{
+	//}
+	// data?
+}
+
 int itu_sys_estorage_list_entities_alive(ITU_EntityId* arr_entities, int arr_entities_max)
 {
 	int entities_count = stbds_arrlen(ctx_estorage.entities);
@@ -459,8 +491,8 @@ void itu_sys_estorage_debug_render_entity_table()
 	int entities_count = stbds_arrlen(ctx_estorage.entities);
 	if(ImGui::BeginTable("debug_estorage_master_entities", 5, ImGuiTableFlags_SizingFixedFit))
 	{
-		ImGui::TableSetupColumn("");
-		ImGui::TableSetupColumn("");
+		ImGui::TableSetupColumn("##col_del");
+		ImGui::TableSetupColumn("##col_idx");
 		ImGui::TableSetupColumn("name");
 		ImGui::TableSetupColumn("gen");
 		ImGui::TableSetupColumn("idx");
@@ -475,8 +507,9 @@ void itu_sys_estorage_debug_render_entity_table()
 
 			ImGui::TableNextColumn();
 			char buf_del[48];
-			SDL_snprintf(buf_del, 48, "X##%3ddebug_estorage_master_entities", row_idx);
-			if(ImGui::Button(buf_del))
+			ImGui::PushID(i);
+			//SDL_snprintf(buf_del, 48, "X##%3ddebug_estorage_master_entities", row_idx);
+			if(ImGui::Button("X"))
 			{
 				itu_entity_destroy(id);
 				ctx_debug_window.loc_selected = -1;
@@ -486,7 +519,7 @@ void itu_sys_estorage_debug_render_entity_table()
 			char buf_id[48];
 			SDL_snprintf(buf_id, 48, "%3d##debug_estorage_master_entities", row_idx);
 			if(ImGui::Selectable(
-				buf_id,
+				"",
 				ctx_debug_window.detail_category == ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY && row_idx == ctx_debug_window.loc_selected,
 				ImGuiSelectableFlags_SpanAllColumns
 			))
@@ -506,7 +539,7 @@ void itu_sys_estorage_debug_render_entity_table()
 
 			ImGui::TableNextColumn();
 			ImGui::Text("%d", id.index);
-
+			ImGui::PopID();
 			++row_idx;
 		}
 
@@ -529,7 +562,9 @@ void do_transform_tree_recursive(ITU_Component* transform_component, Transform3D
 	if(id.index == ctx_debug_window.loc_selected)
 		flags |= ImGuiTreeNodeFlags_Selected;
 
-	// TODO FIXME this is terrible, but we can't afford duplicated or NULL strings passed as id to Imgui
+	ImGui::PushID(loc);
+
+	// TODO FIXME this is terrible, but we can't afford NULL strings passed as id to Imgui
 	char buf_id[64];
 	if(entity_name)
 		SDL_snprintf(buf_id, 64, "%s", entity_name);
@@ -549,6 +584,7 @@ void do_transform_tree_recursive(ITU_Component* transform_component, Transform3D
 		if(curr->child_first)
 			do_transform_tree_recursive(transform_component, curr->child_first);
 		ImGui::TreePop();
+		ImGui::PopID();
 	}
 
 	if(curr->sibling_next)
@@ -637,6 +673,47 @@ void itu_sys_estorage_debug_render(SDLContext* context)
 				ImGui::EndTable();
 			}
 		}
+
+		if(ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			if(ImGui::BeginTable("debug_estorage_master_components", 4, ImGuiTableFlags_SizingFixedFit))
+			{
+				ImGui::TableSetupColumn("");
+				ImGui::TableSetupColumn("name");
+				ImGui::TableSetupColumn("alive");
+				ImGui::TableSetupColumn("capacity");
+				ImGui::TableHeadersRow();
+				for(int i = 0; i < ctx_estorage.components_count; ++i)
+				{
+					ITU_Component* component = ctx_estorage.components[i];
+					ImGui::TableNextRow();
+
+					ImGui::TableNextColumn();
+					char buf_id[48];
+					SDL_snprintf(buf_id, 48, "%3d##debug_estorage_master_components", i);
+					if(ImGui::Selectable(
+						buf_id,
+						ctx_debug_window.detail_category == ITU_SYS_ESTORAGE_DETAIL_CATEGORY_COMPONENT && i == ctx_debug_window.loc_selected,
+						ImGuiSelectableFlags_SpanAllColumns
+					))
+					{
+						ctx_debug_window.loc_selected = i;
+						ctx_debug_window.detail_category = ITU_SYS_ESTORAGE_DETAIL_CATEGORY_COMPONENT;
+					}
+
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", component->name);
+
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", component->count_alive);
+
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", component->count_max);
+				}
+
+				ImGui::EndTable();
+			}
+		}
 		ImGui::EndChild();
 	}
 	ImGui::SameLine();
@@ -646,8 +723,9 @@ void itu_sys_estorage_debug_render(SDLContext* context)
 		if(ctx_debug_window.loc_selected != -1)
 			switch(ctx_debug_window.detail_category)
 			{
-				case ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY: itu_sys_estorage_debug_render_detail_entity(context, ctx_estorage.entities[ctx_debug_window.loc_selected].id); break;
-				case ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM: itu_sys_estorage_debug_render_detail_system(context, &ctx_estorage.systems[ctx_debug_window.loc_selected], selected_system_ids, selected_system_ids_count); break;
+				case ITU_SYS_ESTORAGE_DETAIL_CATEGORY_ENTITY   : itu_sys_estorage_debug_render_detail_entity(context, ctx_estorage.entities[ctx_debug_window.loc_selected].id); break;
+				case ITU_SYS_ESTORAGE_DETAIL_CATEGORY_SYSTEM   : itu_sys_estorage_debug_render_detail_system(context, &ctx_estorage.systems[ctx_debug_window.loc_selected], selected_system_ids, selected_system_ids_count); break;
+				case ITU_SYS_ESTORAGE_DETAIL_CATEGORY_COMPONENT: itu_sys_estorage_debug_render_detail_component(context, ctx_estorage.components[ctx_debug_window.loc_selected]); break;
 				default: /* do nothing */ break;
 			}
 		ImGui::EndChild();
@@ -696,14 +774,17 @@ void itu_component_pool_remove(ITU_Component* component_pool, ITU_EntityId entit
 {
 	SDL_assert(component_pool);
 	SDL_assert(component_pool->data_loc[entity.index] != -1);
+	SDL_assert(component_pool->data_loc[entity.index] < component_pool->count_alive);
 
-	Uint64 loc_curr = entity.index;
+	Uint64 loc_curr = component_pool->data_loc[entity.index];
 	Uint64 loc_last = component_pool->count_alive - 1;
+	ITU_EntityId entity_swap = component_pool->entity_ids[loc_last];
 	component_pool->entity_ids[loc_curr] = component_pool->entity_ids[loc_last];
 
 	void* ptr_curr = pointer_offset(void, component_pool->data, loc_curr * component_pool->element_size);
 	void* ptr_last = pointer_offset(void, component_pool->data, loc_last * component_pool->element_size);
 	SDL_memcpy(ptr_curr, ptr_last, component_pool->element_size);
+	component_pool->data_loc[entity_swap.index] = loc_curr;
 
 	component_pool->count_alive--;
 }
@@ -869,18 +950,22 @@ void itu_entity_destroy(ITU_EntityId id)
 		return;
 	}
 
-	//ITU_EntityId target_id = ctx_estorage.entities[id.index].id;
-	//if(target_id.index == -1)
-	//{
-	//	SDL_Log("WARNING trying to delete entity already deleted\n");
-	//	return;
-	//}
-	//
-	//if(target_id.generation != id.generation)
-	//{
-	//	SDL_Log("WARNING generation mismatch\n");
-	//	return;
-	//}
+	// TMP check if entity has Transform3D, and clean up hierarchy before deleteting data
+	{
+		Transform3D* transform = entity_get_data(id, Transform3D);
+		if(transform)
+		{
+			int tmp_idx = ctx_estorage.components[ITU_COMPONENT_TYPE_Transform3D]->count_alive - 1;
+			ITU_EntityId id_other = ctx_estorage.components[ITU_COMPONENT_TYPE_Transform3D]->entity_ids[tmp_idx];
+			Transform3D* other = entity_get_data(id_other, Transform3D);
+			transform_hierarchy_refresh_before_deletion(
+				other,
+				transform
+			);
+			//transform3D_reparent(id, ITU_ENTITY_ID_NULL);
+			transform_hierarchy_remove(transform);
+		}
+	}
 
 	Uint64 component_mask = ctx_estorage.entities[id.index].component_mask;
 
@@ -919,7 +1004,29 @@ void itu_entity_destroy(ITU_EntityId id)
 void itu_debug_ui_widget_entityid(const char* label, ITU_EntityId id)
 {
 	if(!itu_entity_is_valid(id))
+	{
 		ImGui::LabelText(label, "INVALID ENTITY");
+		return;
+	}
+	
+	int loc = stbds_hmgeti(ctx_estorage.entities_debug_names, id);
+	if(loc == -1)
+		ImGui::LabelText(label, "(%d, %d)", id.generation, id.index);
 	else
-		ImGui::LabelText(label, "%s (%d, %d)", ctx_estorage.entities_debug_names[id.index].value, id.generation, id.index);
+		ImGui::LabelText(label, "%s (%d, %d)", ctx_estorage.entities_debug_names[loc].value, id.generation, id.index);
+}
+
+void itu_debug_ui_widget_entityid_tablerow(ITU_EntityId id)
+{
+	if(!itu_entity_is_valid(id))
+	{
+		ImGui::Text("INVALID ENTITY");
+		return;
+	}
+	
+	int loc = stbds_hmgeti(ctx_estorage.entities_debug_names, id);
+	if(loc == -1)
+		ImGui::Text("(%d, %d)", id.generation, id.index);
+	else
+		ImGui::Text("%s (%d, %d)", ctx_estorage.entities_debug_names[loc].value, id.generation, id.index);
 }

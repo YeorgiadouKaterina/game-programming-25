@@ -428,9 +428,9 @@ static void game_init(SDLContext* context, GameState* state)
 	itu_sys_rstorage_texture_load(context, "data/kenney/simpleSpace_tilesheet_2.png", SDL_SCALEMODE_LINEAR);
 	itu_sys_rstorage_texture_load(context, "data/kenney/UI/bar_round_gloss_small_red.png", SDL_SCALEMODE_LINEAR);
 	itu_sys_rstorage_texture_load(context, "data/kenney/UI/panel_square.png", SDL_SCALEMODE_LINEAR);
-	itu_sys_rstorage_font_load(context, "data/ARIAL.TTF", 42);
-	itu_sys_rstorage_font_load(context, "data/ARIALI.TTF", 42);
-	itu_sys_rstorage_font_load(context, "data/ARIALBD.TTF", 42);
+	itu_sys_rstorage_font_load(context, "data/fonts/ARIAL.TTF", 42);
+	itu_sys_rstorage_font_load(context, "data/fonts/ARIALI.TTF", 42);
+	itu_sys_rstorage_font_load(context, "data/fonts/ARIALBD.TTF", 42);
 
 	ttf_engine = TTF_CreateRendererTextEngine(context->renderer);
 
@@ -510,11 +510,9 @@ static void game_reset(SDLContext* context, GameState* state)
 		ShapeData shape_data;
 		shape_data.shape_id = b2CreateCircleShape(physics_data.body_id, &shape_def, &circle);
 
-		
 		EX6_Health health;
 		health.max = 100;
 		health.curr = 100;
-
 
 		entity_add_component(id_player, Transform     , transform);
 		entity_add_component(id_player, Sprite        , sprite);

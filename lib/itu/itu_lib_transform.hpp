@@ -22,8 +22,7 @@ struct Transform3D
 };
 
 Transform3D* transform3D_add(ITU_EntityId id, ITU_EntityId parent);
-
-void transform2D_reparent(ITU_EntityId id, ITU_EntityId new_parent);
+void transform3D_reparent(ITU_EntityId id, ITU_EntityId new_parent);
 
 int compare_transform_breadth_first(const void *a, const void* b);
 int compare_transform_depth_first(const void *a, const void* b);
@@ -44,29 +43,36 @@ static Transform3D TMP_transform_root =
 void transform_hierarchy_remove(Transform3D* ptr, Transform3D* parent_old);
 void transform_hierarchy_add(Transform3D* ptr, Transform3D* parent_old);
 bool transform_is_offspring_of(Transform3D* ptr, Transform3D* ptr_other);
+void transform_hierarchy_refresh_before_deletion(Transform3D* ptr_to_be_deleted);
 
-void transform_hierarchy_remove(Transform3D* ptr, Transform3D* parent_old)
+void transform_hierarchy_remove(Transform3D* ptr)
 {
-	if(!parent_old)
+	if(!ptr->parent)
 		return;
+	Transform3D* parent = ptr->parent;
 
-	if(parent_old->child_first == ptr)
+	if(parent->child_first == ptr)
 	{
-		parent_old->child_first = ptr->sibling_next;
-		if(parent_old->child_first)
-			parent_old->child_first->sibling_prev = NULL;
+		parent->child_first = ptr->sibling_next;
+		if(parent->child_first)
+			parent->child_first->sibling_prev = NULL;
 	}
-	else if(parent_old->child_last == ptr)
+	else if(parent->child_last == ptr)
 	{
-		parent_old->child_last = ptr->sibling_prev;
-		if(parent_old->child_last)
-			parent_old->child_last->sibling_next = NULL;
+		parent->child_last = ptr->sibling_prev;
+		if(parent->child_last)
+			parent->child_last->sibling_next = NULL;
 	}
 	else
 	{
-		ptr->sibling_prev->sibling_next = ptr->sibling_next;
-		ptr->sibling_next->sibling_prev = ptr->sibling_prev;
+		if(ptr->sibling_prev)
+			ptr->sibling_prev->sibling_next = ptr->sibling_next;
+		if(ptr->sibling_next)
+			ptr->sibling_next->sibling_prev = ptr->sibling_prev;
 	}
+
+	// clean up siblings
+	ptr->sibling_next = ptr->sibling_prev = NULL;
 }
 
 void transform_hierarchy_add(Transform3D* ptr, Transform3D* parent_new)
@@ -85,6 +91,7 @@ void transform_hierarchy_add(Transform3D* ptr, Transform3D* parent_new)
 	{
 		// parent with siblings, append to the end
 		ptr->parent = parent_new;
+		ptr->sibling_next = NULL;
 		ptr->sibling_prev = parent_new->child_last;
 		parent_new->child_last->sibling_next = ptr;
 		parent_new->child_last = ptr;
@@ -111,10 +118,28 @@ Transform3D* transform3D_add(ITU_EntityId id, ITU_EntityId parent)
 	return ptr;
 }
 
+void transform3D_reparent(ITU_EntityId id, ITU_EntityId new_parent)
+{
+	
+	Transform3D* ptr = entity_get_data(id, Transform3D);
+	Transform3D* ptr_parent = entity_get_data(new_parent, Transform3D);
+
+	if(transform_is_offspring_of(ptr_parent, ptr))
+	{
+		SDL_Log("WARNING cannot reparent node to one of its offspring!");
+		return;
+	}
+
+	transform_hierarchy_remove(ptr);
+	transform_hierarchy_add(ptr, ptr_parent);
+}
+
 bool transform_is_offspring_of(Transform3D* ptr, Transform3D* ptr_other)
 {
 	if(ptr == ptr_other)
 		return true;
+	if(ptr == NULL || ptr_other == NULL)
+		return false;
 
 	if(ptr->child_first && transform_is_offspring_of(ptr->child_first, ptr_other))
 		return true;
@@ -123,6 +148,38 @@ bool transform_is_offspring_of(Transform3D* ptr, Transform3D* ptr_other)
 		return true;
 
 	return false;
+}
+
+void transform_hierarchy_refresh_before_deletion(Transform3D* ptr_old, Transform3D* ptr_new)
+{
+	if(ptr_old == ptr_new)
+	{
+		return;
+	}
+
+	if(ptr_old->sibling_prev)
+		ptr_old->sibling_prev->sibling_next = ptr_new;
+	if(ptr_old->sibling_next)
+		ptr_old->sibling_next->sibling_prev = ptr_new;
+
+	Transform3D* child = ptr_old->child_first;
+	while(child)
+	{
+		child->parent = ptr_new;
+		child = child->sibling_next;
+	}
+
+	if(ptr_new->sibling_prev)
+		ptr_new->sibling_prev->sibling_next = ptr_new->sibling_next;
+	if(ptr_new->sibling_next)
+		ptr_new->sibling_next->sibling_prev = ptr_new->sibling_prev;
+
+	child = ptr_new->child_first;
+	while(child)
+	{
+		child->parent = ptr_old;
+		child = child->sibling_next;
+	}
 }
 
 void itu_lib_transform_update_globals()

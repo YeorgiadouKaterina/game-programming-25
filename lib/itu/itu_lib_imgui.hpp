@@ -36,7 +36,7 @@ inline void itu_lib_imgui_setup(SDLContext* context, bool intercept_keyboard)
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-	io.FontDefault = io.Fonts->AddFontFromFileTTF("data\\Roboto-Medium.ttf", 16);
+	io.FontDefault = io.Fonts->AddFontFromFileTTF("data\\fonts\\CASCADIAMONO.ttf", 16);
 	//io.FontDefault = io.Fonts->AddFontFromFileTTF("data\\MSGOTHIC.TTC");
 	if(intercept_keyboard)
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
@@ -119,26 +119,23 @@ inline void itu_lib_imgui_frame_end(SDLContext* context)
 
 	if(ctx_rendering.device)
 	{
-		SDL_GPUCommandBuffer* command_buffer = SDL_AcquireGPUCommandBuffer(ctx_rendering.device);
-
-		if(ctx_rendering.color_texture)
+		if(ctx_rendering.color_target_info.texture)
 		{
-			ImGui_ImplSDLGPU3_PrepareDrawData(draw_data, command_buffer);
+			ImGui_ImplSDLGPU3_PrepareDrawData(draw_data, ctx_rendering.command_buffer_render);
 
 			// Setup and start a render pass
 			SDL_GPUColorTargetInfo target_info = {};
-			target_info.texture = ctx_rendering.color_texture;
+			target_info.texture = ctx_rendering.color_target_info.texture;
 			target_info.load_op = SDL_GPU_LOADOP_LOAD;
 			target_info.store_op = SDL_GPU_STOREOP_STORE;
 			target_info.mip_level = 0;
 			target_info.layer_or_depth_plane = 0;
 			target_info.cycle = false;
-			SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(command_buffer, &target_info, 1, NULL);
-			
-			ImGui_ImplSDLGPU3_RenderDrawData(draw_data, command_buffer, render_pass);
+			SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(ctx_rendering.command_buffer_render, &target_info, 1, NULL);
+
+			ImGui_ImplSDLGPU3_RenderDrawData(draw_data, ctx_rendering.command_buffer_render, render_pass);
 			SDL_EndGPURenderPass(render_pass);
 		}
-		SDL_SubmitGPUCommandBuffer(command_buffer);
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{

@@ -28,6 +28,10 @@ enum BtnType
 	BTN_TYPE_UI_SELECT,
 	BTN_TYPE_UI_EXTRA,  // right click
 
+	BTN_TYPE_DEBUG_F1,
+	BTN_TYPE_DEBUG_F2,
+	BTN_TYPE_DEBUG_F3,
+
 	BTN_TYPE_MAX
 };
 
@@ -81,6 +85,11 @@ struct SDLContext
 			bool btn_isdown_action0;
 			bool btn_isdown_action1;
 			bool btn_isdown_space;
+			bool btn_isdown_ui_select;
+			bool btn_isdown_ui_extra;
+			bool btn_isdown_ui_f1;
+			bool btn_isdown_ui_f2;
+			bool btn_isdown_ui_f3;
 		};
 	};
 
@@ -96,6 +105,11 @@ struct SDLContext
 			bool btn_isjustpressed_action0;
 			bool btn_isjustpressed_action1;
 			bool btn_isjustpressed_space;
+			bool btn_isjustpressed_ui_select;
+			bool btn_isjustpressed_ui_extra;
+			bool btn_isjustpressed_ui_f1;
+			bool btn_isjustpressed_ui_f2;
+			bool btn_isjustpressed_ui_f3;
 		};
 	};
 

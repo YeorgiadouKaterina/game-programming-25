@@ -61,7 +61,7 @@ struct ITU_SystemDef
 #define component_type(T) ITU_COMPONENT_TYPE_##T
 
 #define tag_mask(tag) (1ull << tag)
-#define set_tag_debug_name(tag, name) 
+#define set_tag_debug_name(tag, name) itu_sys_estorage_tag_set_debug_name(tag, name);
 
 
 // register default components
@@ -100,4 +100,6 @@ void  itu_entity_component_remove(ITU_EntityId id, ITU_ComponentType component_t
 void  itu_entity_destroy         (ITU_EntityId id);
 
 void itu_debug_ui_widget_entityid(const char* label, ITU_EntityId id);
+void itu_debug_ui_widget_entityid_tablerow(ITU_EntityId id);
+
 #endif // ITU_ENTITY_STORAGE_HPP
