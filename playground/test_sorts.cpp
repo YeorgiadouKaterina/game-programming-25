@@ -7,7 +7,7 @@
 #define LIB_SIMPLE_PROFILER_IMPLEMENTATION
 #include "lib_simple_profiler.h"
 
-#define MAX_ARRAY_SIZE   2*1024*1024*1024ll // 2GB enough
+#define MAX_ARRAY_SIZE   8*1024*1024*1024ll // 8GB enough
 #define NUM_TRIALS 10
 
 typedef int (*compare_op_t)(const void* a, const void* b);
@@ -28,7 +28,8 @@ struct RunResults
 
 enum InitType
 {
-	INIT_TYPE_ORDERED
+	INIT_TYPE_ORDERED,
+	INIT_TYPE_ORDERED_INVERTED,
 };
 
 struct SortAlgoData
@@ -55,7 +56,7 @@ void format_nanosecs(uint64_t time, char* buf)
 
 int compare_integers(const void* a, const void* b)
 {
-	return *(const uint64_t*)a - *(const uint64_t*)b;
+	return *(const uint64_t*)b - *(const uint64_t*)a;
 }
 
 bool sort_check(void* base, size_t num_of_elements, size_t size_of_elements, compare_op_t fn_compare_op)
@@ -154,7 +155,7 @@ void sort_selection_ints(void* base, size_t num_of_elements, size_t size_of_elem
 
 int main(void)
 {
-	InitType init_type = INIT_TYPE_ORDERED;
+	InitType init_type = INIT_TYPE_ORDERED_INVERTED;
 
 	uint64_t sizes[] = {
 		0,
@@ -196,7 +197,8 @@ int main(void)
 		for(uint64_t j = 0; j < size; ++j)
 			switch (init_type)
 			{
-				case INIT_TYPE_ORDERED: arrays[i][j] = j; break;
+				case INIT_TYPE_ORDERED          : arrays[i][j] = j; break;
+				case INIT_TYPE_ORDERED_INVERTED : arrays[i][j] = size - j - 1; break;
 			}
 	}
 
